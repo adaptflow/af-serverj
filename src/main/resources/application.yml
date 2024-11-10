@@ -10,11 +10,26 @@ spring:
     check-process-definitions: false
     process-engine-name: default
   datasource:
-    url: jdbc:h2:mem:activiti;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: admin
-    password: password
-    platform: h2
+    activiti:
+      url: jdbc:h2:mem:activiti;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      driver-class-name: org.h2.Driver
+      username: admin
+      password: password
+      platform: h2
+      hikari:
+        connectionTimeout: 30000
+        idleTimeout: 600000
+        maxLifetime: 1800000
+    adaptflow:
+      url: jdbc:h2:mem:adaptflow;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      driver-class-name: org.h2.Driver
+      username: admin
+      password: password
+      platform: h2
+      hikari:
+        connectionTimeout: 30000
+        idleTimeout: 600000
+        maxLifetime: 1800000
   h2:
     console:
       enabled: true
