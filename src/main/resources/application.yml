@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: "activiti"
+  security:
+    user:
+      name: admin
+      password: password
+  activiti:
+    database-schema-update: true
+    check-process-definitions: false
+    process-engine-name: default
+  datasource:
+    url: jdbc:h2:mem:activiti;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: admin
+    password: password
+    platform: h2
+  h2:
+    console:
+      enabled: true
