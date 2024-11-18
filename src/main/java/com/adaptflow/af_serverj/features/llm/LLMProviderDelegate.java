@@ -12,15 +12,15 @@ public class LLMProviderDelegate implements JavaDelegate {
 	private Expression provider;
 	private Expression credentials;
 	
-  @Override
-  public void execute(DelegateExecution execution) {
-	  logger.info("Executing LLM Provider Task with input: " + provider.getExpressionText() + "," + credentials.getExpressionText());
-      String result = performLogic(provider.getExpressionText());  // Your actual processing logic here
-      execution.setVariable("message", result);
-  }
-
-  private String performLogic(String input) {
-      // Placeholder logic: replace with actual LLM provider logic
-      return "Processed result for input: " + input;
-  }
+	@Override
+	public void execute(DelegateExecution execution) {
+		String result = executeAction(provider.getExpressionText(), credentials.getExpressionText());  // Your actual processing logic here
+		execution.setVariable("message", result);
+	}
+	
+	private String executeAction(String providerText, String credentialsText) {
+		logger.info("Executing LLM Provider Task with input: " + providerText + "," + credentialsText);
+		// Placeholder logic: replace with actual LLM provider logic
+		return "Processed result";
+	}
 }

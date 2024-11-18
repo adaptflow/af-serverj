@@ -33,3 +33,12 @@ spring:
   h2:
     console:
       enabled: true
+  jpa:
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+  flyway:
+    enabled: false
+    ignore-missing-migrations: true
+    outOfOrder: true
