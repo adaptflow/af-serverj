@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.activiti.org/test">
+  <bpmn2:process id="dynamicProcess" name="Process Name" isExecutable="true">
+    <bpmn2:startEvent id="_d6d1a931-845d-4e1c-809e-8100b3d2f34d" name="Start">
+      <bpmn2:outgoing>_9d9d74e6-659b-47e1-9745-fd589f478a10</bpmn2:outgoing>
+    </bpmn2:startEvent>
+    <bpmn2:endEvent id="_60307c30-b978-47a3-ab43-242b7bd40623" name="End">
+      <bpmn2:incoming>_a64f2d30-4ae3-43c6-84dd-e7fd1bcf4efc</bpmn2:incoming>
+    </bpmn2:endEvent>
+    <bpmn2:serviceTask id="_13db8b2e-bd73-4bb2-adc0-fbe452d60ce2" name="LLMProvider" activiti:class="com.adaptflow.af_serverj.features.llm.LLMProviderDelegate">
+      <extensionElements>
+        <activiti:field name="provider">
+          <activiti:string><![CDATA[openai]]></activiti:string>
+        </activiti:field>
+        <activiti:field name="credentials">
+          <activiti:string><![CDATA[openai-key]]></activiti:string>
+        </activiti:field>
+      </extensionElements>
+      <bpmn2:incoming>_9d9d74e6-659b-47e1-9745-fd589f478a10</bpmn2:incoming>
+      <bpmn2:outgoing>_a64f2d30-4ae3-43c6-84dd-e7fd1bcf4efc</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:sequenceFlow id="_9d9d74e6-659b-47e1-9745-fd589f478a10" sourceRef="_d6d1a931-845d-4e1c-809e-8100b3d2f34d" targetRef="_13db8b2e-bd73-4bb2-adc0-fbe452d60ce2"></bpmn2:sequenceFlow>
+    <bpmn2:sequenceFlow id="_a64f2d30-4ae3-43c6-84dd-e7fd1bcf4efc" sourceRef="_13db8b2e-bd73-4bb2-adc0-fbe452d60ce2" targetRef="_60307c30-b978-47a3-ab43-242b7bd40623"></bpmn2:sequenceFlow>
+  </bpmn2:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_dynamicProcess">
+    <bpmndi:BPMNPlane bpmnElement="dynamicProcess" id="BPMNPlane_dynamicProcess"></bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn2:definitions>

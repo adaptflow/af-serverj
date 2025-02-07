@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.activiti.bpmn.converter.BpmnXMLConverter;
@@ -23,6 +24,7 @@ import org.activiti.engine.RuntimeService;
 import org.activiti.engine.impl.cfg.StandaloneProcessEngineConfiguration;
 import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.DeploymentBuilder;
+import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.runtime.ProcessInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,11 +139,26 @@ public class BPMNTransformer {
         byte[] xmlBytes = converter.convertToXML(bpmnModel);
 
         InputStream is = new ByteArrayInputStream(xmlBytes);
+        removeExistingProcessDeploymentByKey("dynamicProcess");
+        
         DeploymentBuilder deploymentBuilder = repositoryService.createDeployment().name("dynamicProcessDeployment");
         Deployment deployment = deploymentBuilder.addInputStream("dynamicProcess.bpmn20.xml", is).deploy();
-        ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("dynamicProcess");
-        logger.info("Process instance ID: " + processInstance.getId());
         logger.info("Process deployment ID: " + deployment.getId());
         return deployment.getId();
     }
+
+	private void removeExistingProcessDeploymentByKey(String key) {
+		
+		// Step 1: Get the current process definition ID (if any) to undeploy the previous version
+		List<ProcessDefinition> existingDefinitions = repositoryService.createProcessDefinitionQuery()
+		    .processDefinitionKey(key) // Make sure to use the same key for the process
+		    .list();
+
+		for (ProcessDefinition existingDefinition : existingDefinitions) {
+		    // Step 2: Undeploy the previous process definition if one exists
+		    repositoryService.deleteDeployment(existingDefinition.getDeploymentId(), true);  // true means delete cascade (deletes related process instances)
+		}
+	}
+    
+    
 }

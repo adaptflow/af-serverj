@@ -10,5 +10,4 @@ public class AfServerjApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(AfServerjApplication.class, args);
 	}
-
 }

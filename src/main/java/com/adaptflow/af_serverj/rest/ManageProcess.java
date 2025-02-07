@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.adaptflow.af_serverj.process.services.AfProcessDefinition;
 import com.adaptflow.af_serverj.process.services.AfProcessInstance;
 import com.adaptflow.af_serverj.services.bpmn.BPMNTransformer;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -25,8 +25,11 @@ public class ManageProcess {
 	@Autowired
 	AfProcessInstance afProcessInstance;
 	
+	@Autowired
+	AfProcessDefinition afProcessDefinition;
+	
 	@PostMapping("/save")
-	String saveProcessInstance(@RequestBody String payload) {
+	String saveProcessDefinition(@RequestBody String payload) {
 		try {
 			return bpmnTransformer.saveProcess();
 		} catch (JsonMappingException e) {
@@ -39,15 +42,16 @@ public class ManageProcess {
 		return null;
 	}
 	
-	@GetMapping("/")
-	ResponseEntity<String> getAllProcessDefinitions() {
-		afProcessInstance.getAllProcessDefinitions();
-		return ResponseEntity.ok().build();
+	@GetMapping("/{deploymentId}")
+	ResponseEntity<String> getProcessByDeploymentId(@PathVariable String deploymentId) {
+		String response = afProcessDefinition.getProcessDefinitionById(deploymentId);
+		return ResponseEntity.ok(response);
 	}
 	
-	@GetMapping("/{id}")
-	ResponseEntity<String> getProcessInstanceById(@PathVariable String id) {
-//		String formattedProcessId = "dynamicProcess" + ":1:" + id;
-		return ResponseEntity.ok(afProcessInstance.getProcessInstanceById(id));
+	@PostMapping("/execute/{deploymentId}")
+	ResponseEntity<String> executeProcessByDeploymentId(@PathVariable String deploymentId) {
+		String response = afProcessDefinition.executeProcessByDeploymentId(deploymentId);
+		return ResponseEntity.ok(response);
 	}
+	
 }
