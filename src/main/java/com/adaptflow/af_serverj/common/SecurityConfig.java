@@ -31,29 +31,17 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
-//        return httpSecurity.csrf(csrf -> csrf.disable()).authorizeHttpRequests(auth -> auth.requestMatchers("/**").permitAll()
-//            ).build();
     	   return httpSecurity
     		        .csrf(csrf -> csrf.disable()) // Disable CSRF protection (not recommended for production)
     		        .authorizeHttpRequests(auth -> auth
-    		        		.requestMatchers("/h2-console/**").permitAll() // Allow access to H2 console without authentication
-                            .requestMatchers("/actuator/**").permitAll()
                             .anyRequest().authenticated() // Require authentication for all requests
     		        )
     		        .httpBasic(Customizer.withDefaults()) // Use HTTP Basic authentication
     		        .build();
     }
-     
-    @Bean
-    WebSecurityCustomizer webSecurityCustomizer() {
-        return web -> web.ignoring().requestMatchers(
-                           new AntPathRequestMatcher("/h2-console/**")
-                        );
-    }
 	
 	@Bean
     public UserDetailsService myUserDetailsService() {
-
         InMemoryUserDetailsManager inMemoryUserDetailsManager = new InMemoryUserDetailsManager();
 
         String[][] usersGroupsAndRoles = {
