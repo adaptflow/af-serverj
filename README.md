@@ -1,4 +1,9 @@
 # Adaptflow Java Server
+## Development setup
+- Java 21
+- Postgresql 16.6
+- Springboot 3.3.5
+- activiti 8.6.0 (alfresco)
 ## Problems
 1. To test RAG/Agents, we need to write repeativie/boilerplate code which needs technical skills. Non-technical users like Business analysts, operations managers, marketing/sales teams, etc. find it difficult to design and test AI agents. They may use codeless applications for the same.
 2. Even after using codeless application to prototype an idea/project, currently there are technical challenges to seamlessly bring such codeless applications into the production.
@@ -16,4 +21,5 @@ Use cases:
 ### Phase 3:
 Use cases:
 1. In addition to Java, allow other backends like python to execute BPMN process based RAG/Agent models and export them as standalone application.
+---
 
