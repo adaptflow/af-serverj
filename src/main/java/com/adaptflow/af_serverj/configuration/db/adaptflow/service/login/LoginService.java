@@ -1,10 +1,14 @@
 package com.adaptflow.af_serverj.configuration.db.adaptflow.service.login;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,35 +17,34 @@ import com.adaptflow.af_serverj.common.exception.ServiceException;
 import com.adaptflow.af_serverj.configuration.db.adaptflow.entity.User;
 import com.adaptflow.af_serverj.configuration.db.adaptflow.repository.login.UserRepository;
 import com.adaptflow.af_serverj.jwt.JwtService;
-import com.adaptflow.af_serverj.jwt.JwtValidator;
 import com.adaptflow.af_serverj.jwt.UserContextHolder;
 import com.adaptflow.af_serverj.model.dto.UserRegistrationDTO;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
-public class LoginService {
+public class LoginService extends JwtService {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    public LoginService(
+            @Value("${jwt.access_token.expire}") int jwtAccessTokenExpireDuration,
+            @Value("${jwt.refresh_token.expire}") int jwtRefreshTokenExpireDuration,
+            @Value("${jwt.public.key}") String publicKeyPEM,
+            @Value("${jwt.private.key}") String privateKeyPEM,
+            RedissonClient redissonClient,
+            UserRepository userRepository) {
 
-    @Autowired
-    private JwtService jwtService;
-
-    @Autowired
-    private JwtValidator jwtValidator;
+        super(jwtAccessTokenExpireDuration, jwtRefreshTokenExpireDuration, publicKeyPEM, privateKeyPEM, redissonClient);
+        this.userRepository = userRepository;
+    }
 
     @Transactional
-    public Map<String, Object> handleUserLogin(Map<String, String> request) throws ServiceException {
+    public ResponseEntity<Map<?, ?>> handleUserLogin(Map<String, String> request) throws ServiceException {
         String username = request.get("username");
         String password = request.get("password");
         if (username == null || password == null) {
@@ -57,49 +60,45 @@ public class LoginService {
         // update last-login everytime
         userRepository.updateLastLogin(user.getId(), System.currentTimeMillis());
 
-        Map<String, Object> response = new HashMap<>();
-        Map<?, ?> userMap = objectMapper.convertValue(user, Map.class);
-        userMap.remove("password");
-        response.put("user", userMap);
-
         // generate the tokens
-        Map<String, String> tokens = jwtService.createTokens(user);
+        Map<String, String> tokens = createTokens(user);
         // persist the refresh token in redis
-        jwtService.addRefreshTokenInRedis(user.getId().toString(), tokens.get(JwtService.REFRESH_TOKEN));
+        addRefreshTokenInRedis(user.getUsername(), tokens.get(JwtService.REFRESH_TOKEN));
 
-        response.putAll(tokens);
+        // Create cookies for Access Token and Refresh Token
+        ResponseCookie accessTokenCookie = getCookieValue(tokens, false, false);
 
-        return response;
+        ResponseCookie refreshTokenCookie = getCookieValue(tokens, true, false);
+
+        // Return response with cookies
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .body(Map.of());
 
     }
 
     @Transactional
-    public Map<String, String> refreshTokens(Map<String, String> request) throws Exception {
-        String refreshToken = request.get("refreshToken");
+    public Map<String, String> refreshTokens(String refreshToken) throws Exception {
         if (refreshToken == null) {
             throw new ServiceException(ErrorCode.INVALID_INPUT, "Refresh token is required.");
         }
 
-        // Validate token before decoding to prevent tampering
-        if (!jwtValidator.validateToken(refreshToken)) {
-            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Invalid or expired refresh token.");
-        }
-
         // Decode JWT only after successful validation
         DecodedJWT decodedJWT = JWT.decode(refreshToken);
-        String userId = decodedJWT.getClaim("id").asString();
+        String username = decodedJWT.getClaim("username").asString();
 
         // Convert userId to UUID and fetch user
-        User user = userRepository.findById(UUID.fromString(userId))
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ServiceException(ErrorCode.INVALID_INPUT, "User could not be found."));
 
         // Generate and return new tokens
-        Map<String, String> tokens = jwtService.createTokens(user);
+        Map<String, String> tokens = createTokens(user);
         // update the new refresh token in redis for the user and blacklist older one
         String newRefreshToken = tokens.get(JwtService.REFRESH_TOKEN);
-        jwtService.addRefreshTokenInRedis(user.getId().toString(), newRefreshToken);
+        addRefreshTokenInRedis(user.getUsername(), newRefreshToken);
         // blacklist old refresh token
-        jwtService.blacklistToken(refreshToken);
+        blacklistToken(refreshToken);
 
         return tokens;
     }
@@ -133,20 +132,68 @@ public class LoginService {
         return Map.of("msg", "User registered successfully.");
     }
 
-    public void processLogout() {
+    public ResponseEntity<Map<?, ?>> processLogout() {
 
         String accessToken = UserContextHolder.get().getToken();
-        String userId = UserContextHolder.get().getUserId();
-        log.info("Logging out user: {}", userId);
+        String username = UserContextHolder.get().getUsername();
+        log.info("Logging out user: {}", username);
         // blacklist the access token & refresh token
         if (accessToken != null)
-            jwtService.blacklistToken(accessToken);
+            blacklistToken(accessToken);
 
         // gets all the refresh tokens of users stored in redis
-        Map<String, String> refreshTokensMap = jwtService.getAllRefreshTokens();
-        if (refreshTokensMap.containsKey(userId))
-            jwtService.blacklistToken(refreshTokensMap.get(userId));
+        Map<String, String> refreshTokensMap = getAllRefreshTokens();
+        if (refreshTokensMap.containsKey(username))
+            blacklistToken(refreshTokensMap.get(username));
 
+        ResponseCookie accessTokenCookie = getCookieValue(Map.of(), false, true);
+
+        ResponseCookie refreshTokenCookie = getCookieValue(Map.of(), true, true);
+        // Return response with cookies
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .body(Map.of("msg", "User logged out successfully."));
+
+    }
+
+    /**
+     * Creates a cookie for the given token.
+     *
+     * @param tokens    A map containing access and refresh tokens.
+     * @param isRefresh A boolean flag indicating if the token is a refresh token.
+     * @param isLogout  A boolean flag indicating cookie to be set for logout case
+     * @return ResponseCookie A cookie object.
+     */
+    private ResponseCookie getCookieValue(Map<String, String> tokens, boolean isRefresh, boolean isLogout) {
+        if (isRefresh && !isLogout) {
+            return ResponseCookie
+                    .from(REFRESH_TOKEN, tokens.get(REFRESH_TOKEN))
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .maxAge(Duration.ofDays(jwtRefreshTokenExpireDuration))
+                    .sameSite("Lax")
+                    .build();
+        }
+        if (isLogout) {
+            return ResponseCookie
+                    .from(isRefresh ? REFRESH_TOKEN : ACCESS_TOKEN, "")
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .maxAge(Duration.ofMinutes(0))
+                    .sameSite("Lax")
+                    .build();
+        }
+        return ResponseCookie
+                .from(ACCESS_TOKEN, tokens.get(ACCESS_TOKEN))
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(Duration.ofMinutes(jwtAccessTokenExpireDuration))
+                .sameSite("Lax")
+                .build();
     }
 
 }

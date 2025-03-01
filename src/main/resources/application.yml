@@ -42,7 +42,7 @@ spring:
     ignore-missing-migrations: true
     outOfOrder: true
 jwt:
-  excluded-paths: /api/auth/login,/api/auth/register,/api/auth/refresh,/h2-console/**,/actuator/**
+  excluded-paths: /api/auth/login,/h2-console/**,/actuator/**
   access_token:
     expire: ${JWT_ACCESS_EXPIRE_TIME:15} # in minutes
   refresh_token:

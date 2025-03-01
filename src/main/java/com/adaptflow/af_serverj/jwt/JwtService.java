@@ -24,12 +24,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JwtService extends JwtValidator {
 
-    private Map<String, String> jsonHeaderPayload = Map.of("alg", "RS512", "typ", "JWT");
-    private final RedissonClient redissonClient;
+    private final Map<String, String> jsonHeaderPayload = Map.of("alg", "RS512", "typ", "JWT");
+    protected final RedissonClient redissonClient;
     public final static String ACCESS_TOKEN = "accessToken";
     public final static String REFRESH_TOKEN = "refreshToken";
-    private int jwtAccessTokenExpireDuration;
-    private int jwtRefreshTokenExpireDuration;
+    protected int jwtAccessTokenExpireDuration;
+    protected int jwtRefreshTokenExpireDuration;
 
     private final static String REFESH_TOKENS_KEY = "users.refresh.token";
 
@@ -128,10 +128,11 @@ public class JwtService extends JwtValidator {
             throws JsonProcessingException {
         if (isRefresh) {
             return objectMapper.writeValueAsString(
-                    Map.of("id", user.getId(), "type", "refresh", "iat", currentTime.getEpochSecond(), "exp",
+                    Map.of("username", user.getUsername(), "type", "refresh", "iat", currentTime.getEpochSecond(),
+                            "exp",
                             expiration.getEpochSecond()));
         }
-        return objectMapper.writeValueAsString(Map.of("id", user.getId(), "email", user.getEmail(),
+        return objectMapper.writeValueAsString(Map.of(
                 "username", user.getUsername(), "type", "token", "iat", currentTime.getEpochSecond(), "exp",
                 expiration.getEpochSecond()));
     }

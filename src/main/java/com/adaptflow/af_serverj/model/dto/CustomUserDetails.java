@@ -10,8 +10,6 @@ import lombok.NoArgsConstructor;
 public class CustomUserDetails {
 
     private String token;
-    private String userId;
     private String username;
-    private String email;
-
+    private String refreshToken;
 }

@@ -39,9 +39,9 @@ public class AuthController {
      * @throws ServiceException If authentication fails.
      */
     @PostMapping(path = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> request) throws ServiceException {
+    public ResponseEntity<Map<?, ?>> login(@RequestBody Map<String, String> request) throws ServiceException {
         try {
-            return ResponseEntity.ok(loginService.handleUserLogin(request));
+            return loginService.handleUserLogin(request);
         } catch (ServiceException e) {
             throw e; // Let the global exception handler take care of this
         } catch (Exception e) {
@@ -74,28 +74,6 @@ public class AuthController {
     }
 
     /**
-     * Handles token refresh requests.
-     * Verifies the refresh token and issues a new access token.
-     *
-     * @param request A map containing the "refreshToken" field.
-     * @return A response containing the new access token & refresh token.
-     * @throws ServiceException If the refresh token is invalid or expired.
-     */
-    @PostMapping(value = "/refresh", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> refreshTokens(@RequestBody Map<String, String> request)
-            throws ServiceException {
-        try {
-            return ResponseEntity.ok(loginService.refreshTokens(request));
-        } catch (ServiceException e) {
-            throw e; // Let the global exception handler take care of this
-        } catch (Exception e) {
-            // Handle unexpected errors (log and return a generic error response)
-            log.error("Unexpected error during login", e);
-            throw new ServiceException(ErrorCode.SERVER_ERROR);
-        }
-    }
-
-    /**
      * Handles user logout.
      * Revokes the user's authentication tokens and ends the session.
      *
@@ -103,8 +81,7 @@ public class AuthController {
      */
     @PostMapping(path = "/logout", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<?, ?>> logoutUser() {
-        loginService.processLogout();
-        return ResponseEntity.ok().body(Map.of("msg", "User logged out successfully."));
+        return loginService.processLogout();
     }
 
 }

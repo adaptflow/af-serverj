@@ -115,16 +115,6 @@ public class JwtValidator {
         Map<String, Object> header = objectMapper.readValue(headerJson, Map.class);
         Map<String, Object> payload = objectMapper.readValue(payloadJson, Map.class);
 
-        // Check token expiration
-        if (payload.containsKey("exp")) {
-            long expiration = Long.parseLong(payload.get("exp").toString());
-            if (Instant.now().getEpochSecond() > expiration) {
-                throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Token expired.");
-            }
-        } else {
-            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Token does not contain expiration.");
-        }
-
         // Verify signature
         String signedContent = parts[0] + "." + parts[1];
         byte[] signature = Base64.getUrlDecoder().decode(parts[2]);
@@ -135,6 +125,17 @@ public class JwtValidator {
 
         if (!sig.verify(signature)) {
             throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Invalid token signature.");
+        }
+
+        // Check token expiration
+        if (payload.containsKey("exp")) {
+            long expiration = Long.parseLong(payload.get("exp").toString());
+            if (Instant.now().getEpochSecond() > expiration) {
+                // Token is expired
+                return false;
+            }
+        } else {
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Token does not contain expiration.");
         }
 
         return true;
