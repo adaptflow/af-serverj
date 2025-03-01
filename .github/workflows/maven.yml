@@ -19,6 +19,7 @@ on:
       - '**/*.xml'
       - '**/*.sql'
       - '**/*.yml'
+  workflow_dispatch:
 
 jobs:
   build:
