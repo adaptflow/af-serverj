@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.adaptflow.af_serverj.common.exception.ErrorCode;
 import com.adaptflow.af_serverj.common.exception.ServiceException;
-import com.adaptflow.af_serverj.configuration.db.login.service.LoginService;
+import com.adaptflow.af_serverj.configuration.db.adaptflow.service.login.LoginService;
 import com.adaptflow.af_serverj.model.dto.UserRegistrationDTO;
 
 import jakarta.validation.Valid;
@@ -101,7 +101,7 @@ public class AuthController {
      *
      * @return A response indicating successful logout.
      */
-    @PostMapping("/logout")
+    @PostMapping(path = "/logout", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<?, ?>> logoutUser() {
         loginService.processLogout();
         return ResponseEntity.ok().body(Map.of("msg", "User logged out successfully."));

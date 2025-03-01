@@ -19,6 +19,7 @@ public class InitializeAdapflowFlywayMigratyion {
         return Flyway.configure()
                 .dataSource(adaptflowDataSource)
                 .baselineOnMigrate(true)
+                .schemas("af_global")
                 .locations("classpath:/flyway/scripts/adaptflow")
                 .load();
     }

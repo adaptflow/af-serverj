@@ -1,10 +1,6 @@
 spring:
   application:
     name: "activiti"
-  security:
-    user:
-      name: ${SECURITY_USERNAME}
-      password: ${SECURITY_PASSWORD}
   activiti:
     database-schema-update: true
     check-process-definitions: false
@@ -15,7 +11,8 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:superadmin}
+      # can connect to a password protected redis, just need to uncomment the below line.
+      # password: ${REDIS_PASSWORD:superadmin}
   datasource:
     activiti:
       url: ${ACTIVITI_DB_URL}
@@ -37,18 +34,8 @@ spring:
         connectionTimeout: 30000
         idleTimeout: 600000
         maxLifetime: 1800000
-    login:
-      url: ${LOGIN_DB_URL}
-      driver-class-name: org.postgresql.Driver
-      username: ${DB_USERNAME}
-      password: ${DB_PASSWORD}
-      platform: postgresql
-      hikari:
-        connectionTimeout: 30000
-        idleTimeout: 600000
-        maxLifetime: 1800000
   jpa:
-    generate-ddl: true
+    generate-ddl: false
     show_sql: true
   flyway:
     enabled: false

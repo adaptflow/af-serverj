@@ -1,4 +1,4 @@
-package com.adaptflow.af_serverj.configuration.db.login.entity;
+package com.adaptflow.af_serverj.configuration.db.adaptflow.entity;
 
 import java.util.UUID;
 

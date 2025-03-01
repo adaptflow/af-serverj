@@ -31,9 +31,9 @@ public class JwtValidator {
     public static final String BLACKLISTED_TOKENS_KEY = "blacklisted.jwts";
     private final String privateKeyPEM;
     private final String publicKeyPEM;
+    private final RedissonClient redissonClient;
     protected final PublicKey publicKey;
     protected final PrivateKey privateKey;
-    private RedissonClient redissonClient;
 
     protected final ObjectMapper objectMapper = new ObjectMapper();
 

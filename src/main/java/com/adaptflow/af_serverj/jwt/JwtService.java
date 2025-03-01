@@ -11,7 +11,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
-import com.adaptflow.af_serverj.configuration.db.login.entity.User;
+import com.adaptflow.af_serverj.configuration.db.adaptflow.entity.User;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import org.redisson.api.RBucket;
@@ -25,11 +25,11 @@ import lombok.extern.slf4j.Slf4j;
 public class JwtService extends JwtValidator {
 
     private Map<String, String> jsonHeaderPayload = Map.of("alg", "RS512", "typ", "JWT");
+    private final RedissonClient redissonClient;
     public final static String ACCESS_TOKEN = "accessToken";
     public final static String REFRESH_TOKEN = "refreshToken";
     private int jwtAccessTokenExpireDuration;
     private int jwtRefreshTokenExpireDuration;
-    private RedissonClient redissonClient;
 
     private final static String REFESH_TOKENS_KEY = "users.refresh.token";
 
@@ -52,10 +52,11 @@ public class JwtService extends JwtValidator {
 
     public void addRefreshTokenInRedis(String userId, String token) {
         RMap<String, String> userRefreshTokenMap = redissonClient.getMap(REFESH_TOKENS_KEY);
-        if (userRefreshTokenMap != null) {
-            // prevents multiple refresh tokens for the same user
-            userRefreshTokenMap.put(userId, token);
-        }
+        Map<String, String> refreshTokenMap = userRefreshTokenMap.readAllMap();
+        refreshTokenMap = refreshTokenMap != null ? refreshTokenMap : new HashMap<>();
+        // prevents multiple refresh tokens for the same user
+        refreshTokenMap.put(userId, token);
+        userRefreshTokenMap.putAll(refreshTokenMap);
     }
 
     public void blacklistToken(String token) {
@@ -66,8 +67,8 @@ public class JwtService extends JwtValidator {
     }
 
     public Map<String, String> getAllRefreshTokens() {
-        RMap<String, String> blackListedTokens = redissonClient.getMap(REFESH_TOKENS_KEY);
-        return blackListedTokens.readAllMap();
+        RMap<String, String> userRefreshTokenMap = redissonClient.getMap(REFESH_TOKENS_KEY);
+        return userRefreshTokenMap.readAllMap();
     }
 
     private String createAccessToken(User user) {

@@ -1,4 +1,4 @@
-package com.adaptflow.af_serverj.configuration.db.login.service;
+package com.adaptflow.af_serverj.configuration.db.adaptflow.service.login;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -10,8 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.adaptflow.af_serverj.common.exception.ErrorCode;
 import com.adaptflow.af_serverj.common.exception.ServiceException;
-import com.adaptflow.af_serverj.configuration.db.login.entity.User;
-import com.adaptflow.af_serverj.configuration.db.login.repository.UserRepository;
+import com.adaptflow.af_serverj.configuration.db.adaptflow.entity.User;
+import com.adaptflow.af_serverj.configuration.db.adaptflow.repository.login.UserRepository;
 import com.adaptflow.af_serverj.jwt.JwtService;
 import com.adaptflow.af_serverj.jwt.JwtValidator;
 import com.adaptflow.af_serverj.jwt.UserContextHolder;
@@ -98,9 +98,8 @@ public class LoginService {
         // update the new refresh token in redis for the user and blacklist older one
         String newRefreshToken = tokens.get(JwtService.REFRESH_TOKEN);
         jwtService.addRefreshTokenInRedis(user.getId().toString(), newRefreshToken);
-        // blacklist both old access token & refresh token
+        // blacklist old refresh token
         jwtService.blacklistToken(refreshToken);
-        jwtService.blacklistToken(UserContextHolder.get().getToken());
 
         return tokens;
     }
@@ -136,11 +135,14 @@ public class LoginService {
 
     public void processLogout() {
 
-        String token = UserContextHolder.get().getToken();
+        String accessToken = UserContextHolder.get().getToken();
         String userId = UserContextHolder.get().getUserId();
         log.info("Logging out user: {}", userId);
-        if (token != null)
-            jwtService.blacklistToken(token);
+        // blacklist the access token & refresh token
+        if (accessToken != null)
+            jwtService.blacklistToken(accessToken);
+
+        // gets all the refresh tokens of users stored in redis
         Map<String, String> refreshTokensMap = jwtService.getAllRefreshTokens();
         if (refreshTokensMap.containsKey(userId))
             jwtService.blacklistToken(refreshTokensMap.get(userId));
