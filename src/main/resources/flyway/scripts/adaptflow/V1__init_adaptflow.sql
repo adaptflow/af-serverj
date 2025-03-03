@@ -29,6 +29,18 @@ CREATE TABLE IF NOT EXISTS af_global.credential_services (
     FOREIGN KEY (credential_id) REFERENCES af_global.credentials(id) ON DELETE CASCADE,
     FOREIGN KEY (service_id) REFERENCES af_global.services(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS af_global.user (
+    id uuid PRIMARY KEY,
+    createdat bigint NOT NULL,
+    deletedat bigint,
+    email character varying(255) NOT NULL UNIQUE,
+    firstname character varying(255) NOT NULL,
+    lastlogin bigint,
+    lastname character varying(50),
+    password character varying(255) NOT NULL,
+    username character varying(255) NOT NULL UNIQUE
+);
 ------------------------------------------------------------------------------------------------
 -- Add Sample Data------------------------------------------------------------------------------
 -- Clear existing data
@@ -36,6 +48,7 @@ DELETE FROM af_global.credential_services;
 DELETE FROM af_global.credentials;
 DELETE FROM af_global.services;
 DELETE FROM af_global.providers;
+DELETE FROM af_global.user;
 
 -- Insert sample providers
 INSERT INTO af_global.providers (id, name) VALUES
@@ -66,3 +79,8 @@ INSERT INTO af_global.credential_services (credential_id, service_id) VALUES
     ('b417bd61-74b7-4d7e-99a1-d3b2c53b1425', '9d5c6b89-1339-4d8e-b983-5b4e87d0361b'),  -- Google Cloud Credential 1 -> Cloud Storage
     ('adddbab2-d23c-4f5f-8a52-d9fa91c22b2e', 'c7a03f55-2c73-4657-88a7-c62dffdd3654'),  -- Azure Credential 1 -> Virtual Machines
     ('adddbab2-d23c-4f5f-8a52-d9fa91c22b2e', '3f21c5b3-c603-47a9-8a19-8a8e717df6e3');  -- Azure Credential 1 -> Blob Storage
+
+-- Insert default user into the user table
+INSERT INTO af_global.user (id, createdat, email, firstname, password, username) VALUES
+    ('5e2010a1-9c81-471a-88fb-aa416797124d', 1740416746909, 'admin@gmail.com', 'admin', '$2a$10$xgcnTqnJhAzOTOqLc7g.Puo7ma0KQLOfFUYcu8sjp6gORsojKTFq.', 'admin123');
+    -- password for default user -> qwertyuiop

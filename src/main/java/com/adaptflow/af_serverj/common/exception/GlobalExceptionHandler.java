@@ -1,7 +1,11 @@
 package com.adaptflow.af_serverj.common.exception;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -20,6 +24,26 @@ public class GlobalExceptionHandler {
 
         // Return the error response with the appropriate HTTP status code
         return new ResponseEntity<>(errorResponse, HttpStatus.valueOf(ex.getHttpStatusCode()));
+    }
+
+    // Handle validation errors for request body
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> validationErrors = new HashMap<>();
+
+        ex.getBindingResult().getFieldErrors().forEach(error -> {
+            validationErrors.put(error.getField(), error.getDefaultMessage());
+        });
+
+        if (!validationErrors.isEmpty()) {
+            ValidationErrorResponse errorResponse = new ValidationErrorResponse(
+                    ErrorCode.INVALID_INPUT.name(),
+                    "Validation failed",
+                    validationErrors);
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+
+        return ResponseEntity.badRequest().body(new ErrorResponse(ErrorCode.INVALID_INPUT.name(), "Validation failed"));
     }
 
     // Optionally handle other exceptions globally

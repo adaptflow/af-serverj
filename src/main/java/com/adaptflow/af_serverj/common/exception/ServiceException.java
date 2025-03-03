@@ -18,6 +18,14 @@ public class ServiceException extends Exception {
         this.errorMessage = errorCode.getErrorMessage();
     }
 
+    // Contructor for custom error message
+    public ServiceException(ErrorCode errorCode, String errorMessage) {
+        super(errorMessage);
+        this.httpStatusCode = errorCode.getHttpStatusCode();
+        this.errorCode = errorCode;
+        this.errorMessage = errorMessage;
+    }
+
     // Getter for HTTP Status Code
     public int getHttpStatusCode() {
         return httpStatusCode;

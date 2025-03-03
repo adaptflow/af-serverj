@@ -1,16 +1,18 @@
 spring:
   application:
     name: "activiti"
-  security:
-    user:
-      name: ${SECURITY_USERNAME}
-      password: ${SECURITY_PASSWORD}
   activiti:
     database-schema-update: true
     check-process-definitions: false
     process-engine-name: default
     dbHistoryUsed: true
     historyLevel: full
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      # can connect to a password protected redis, just need to uncomment the below line.
+      # password: ${REDIS_PASSWORD:superadmin}
   datasource:
     activiti:
       url: ${ACTIVITI_DB_URL}
@@ -33,11 +35,19 @@ spring:
         idleTimeout: 600000
         maxLifetime: 1800000
   jpa:
-    properties:
-      hibernate:
-        show_sql: true
-        format_sql: true
+    generate-ddl: false
+    show_sql: true
   flyway:
     enabled: false
     ignore-missing-migrations: true
     outOfOrder: true
+jwt:
+  excluded-paths: /api/auth/login,/h2-console/**,/actuator/**
+  access_token:
+    expire: ${JWT_ACCESS_EXPIRE_TIME:15} # in minutes
+  refresh_token:
+    expire: ${JWT_REFRESH_EXPIRE_TIME:24} # in hours
+  public:
+    key: ${JWT_PUBLIC_KEY:-----BEGIN PUBLIC KEY----- MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA9N21vcxhcrA2b0ELTw98 hBQ/azhbJkALD1k+qd4S2X8k+I4tNTQr2k/8+OCLjDkoKH75+fGDskDA+4tqbbf5 MO4v7oxgXSTimCOwtxeUHZS5upx+Vj2dTkUIBDSmj/uHM7CPoyGy+6PG39Ikar6T 9sTEni0WftXB+wJX6Ezv2aXws/LNpNLluixxiwh+I3V44rjwb9oZj01TGk4KitZE kfHur06YbwCtu7Z5+bMAct1JW0vsTqGS/UpfUV1fdBQsCroLUswy6wjy9DE2Z7f2 lsp7Jhi35Z7/Ka7CxCU8zfLVMRVJ/S0MDIG92dlLhoJvi/sVldMVyqM8SdA52cNY rQIDAQAB -----END PUBLIC KEY-----}
+  private:
+    key: ${JWT_PRIVATE_KEY:-----BEGIN RSA PRIVATE KEY----- MIIEpAIBAAKCAQEA9N21vcxhcrA2b0ELTw98hBQ/azhbJkALD1k+qd4S2X8k+I4t NTQr2k/8+OCLjDkoKH75+fGDskDA+4tqbbf5MO4v7oxgXSTimCOwtxeUHZS5upx+ Vj2dTkUIBDSmj/uHM7CPoyGy+6PG39Ikar6T9sTEni0WftXB+wJX6Ezv2aXws/LN pNLluixxiwh+I3V44rjwb9oZj01TGk4KitZEkfHur06YbwCtu7Z5+bMAct1JW0vs TqGS/UpfUV1fdBQsCroLUswy6wjy9DE2Z7f2lsp7Jhi35Z7/Ka7CxCU8zfLVMRVJ /S0MDIG92dlLhoJvi/sVldMVyqM8SdA52cNYrQIDAQABAoIBAGa7vkxrO1dK5wu2 VnBNJwijFhh+BH//zqQZ5ViPe4kU9wXxYLY5tUxa0t/4FZQ3Rsn2vBpJYd+fm1fu HjD6RupohGOpMaTinM8H6lRm6BWhGGtazQaRwzXbcImTLW6rMQZWxWzD7rv08rNl DzJZ0uptk7Bpak68kC4nxYoI/XhqfH9QPWFUJfmAn2rMuO0JC+Y5uoaAp8tduC/f ZnoaBNzDk01WHe1R/QlJPKfTRjGGuKSvHUactDuygL1CaOFPbfMk78epvI4rDte+ My0ri9CBurQm2ogX/oj8PsqubiGMqgxg124SE1f236maY2x9HX0ZLXGRiZBfg200 jY+iKGECgYEA/ZMkgmRm7QMSyLgTP/dJnTCd9lPoBgiBl4pxCpyRgNUnJY9OYofT PPU11z/4ATWFX4v2Xm2y2hLWgtCausDwPH+3YiyLy9kOR0yjVxP96ami9Ujzk1IA A2nTAW7BLSEaUIIAQpz79TjHCieEtNg0h5k01NuiKqxD1MJuNsmVF9cCgYEA9zU+ pVy2FtQWX6Y6s4rSUft+Z9JAcucNPr/7xtzCpsZSa2qLsBk7MrM6MYAnwvAO5jP2 t+iV/GTqUsj65VEd++IhGOgLLpzR9LJhwDxs4Fj0eMZDnnEJgfWvJEH5/TQU9yfL B/tTtfq88J6lzakCzua4cyCKfjS1LJGDR8XGMxsCgYEAs8cem1OTpXYIW0YmX7Ny /X76fyn91kkxl78PZfabMjvtBTQU3sZtfUpcYb94lWLcrGEOyuP7aaDxdM1w5fbk XAAwg+oRMvUwqlwrchE6c+9RGZYfGtOILuNYNivPya8ueOWySYgDGlimxQw/ife/ RmPYkREmaBq5/J3chftlOQECgYEAtmG7AUcgNEFu7Ex4nIO73a49OR2eXOdoFzaO 681tcpt4rTUjL929lg8yzNhu/Vwcsev+hvp6xYYydrc+m7a392CC6Jwxu8cJA44j ni82aGJYo04rDxb4W8BF4esnI46sNRhPq2jZ/rWpdaCmVM/veXQw+wc0Bh6e1+3X PDmGm6cCgYBkYyw7D9v0Exh5fgUBLqsvxe6tQ2qXTsGq3crUh3LoephYO2pj0IHo Q3/EWhrCRoLwBLcc3JRc4Vmci5aBoTM/wnVsvQCW//RgW4WD74CAngp8Ur2fDDYO 0w/lm6FvOvcpXU8FXDwlfHAx44Lfi5I6CnbAZnIUh5o+yKgXvMR1iQ== -----END RSA PRIVATE KEY-----}
