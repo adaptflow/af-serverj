@@ -3,19 +3,18 @@ package com.adaptflow.af_serverj.jwt;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Service;
 
 import com.adaptflow.af_serverj.configuration.db.adaptflow.entity.User;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
+import org.redisson.api.RMapCache;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +30,7 @@ public class JwtService extends JwtValidator {
     protected int jwtAccessTokenExpireDuration;
     protected int jwtRefreshTokenExpireDuration;
 
-    private final static String REFESH_TOKENS_KEY = "users.refresh.token";
+    protected final static String REFESH_TOKENS_KEY = "users.refresh.token";
 
     public JwtService(@Value("${jwt.access_token.expire}") int jwtAccessTokenExpireDuration,
             @Value("${jwt.refresh_token.expire}") int jwtRefreshTokenExpireDuration,
@@ -50,20 +49,15 @@ public class JwtService extends JwtValidator {
         return tokens;
     }
 
-    public void addRefreshTokenInRedis(String userId, String token) {
-        RMap<String, String> userRefreshTokenMap = redissonClient.getMap(REFESH_TOKENS_KEY);
-        Map<String, String> refreshTokenMap = userRefreshTokenMap.readAllMap();
-        refreshTokenMap = refreshTokenMap != null ? refreshTokenMap : new HashMap<>();
-        // prevents multiple refresh tokens for the same user
-        refreshTokenMap.put(userId, token);
-        userRefreshTokenMap.putAll(refreshTokenMap);
+    public void addRefreshTokenInRedis(String username, String token) {
+        RMapCache<String, String> userRefreshTokenMap = redissonClient.getMapCache(REFESH_TOKENS_KEY);
+        userRefreshTokenMap.put(username, token, jwtRefreshTokenExpireDuration, TimeUnit.HOURS);
     }
 
-    public void blacklistToken(String token) {
-        RBucket<List<String>> blackListedTokens = redissonClient.getBucket(BLACKLISTED_TOKENS_KEY);
-        List<String> blackListed = blackListedTokens.get() != null ? blackListedTokens.get() : new ArrayList<>();
-        blackListed.add(token);
-        blackListedTokens.set(blackListed);
+    public void blacklistToken(String username, String token, boolean isRefresh) {
+        RMapCache<String, String> blacklistedTokens = redissonClient.getMapCache(BLACKLISTED_TOKENS_KEY);
+        blacklistedTokens.put(token, username, isRefresh ? jwtRefreshTokenExpireDuration : jwtAccessTokenExpireDuration,
+                isRefresh ? TimeUnit.HOURS : TimeUnit.MINUTES);
     }
 
     public Map<String, String> getAllRefreshTokens() {

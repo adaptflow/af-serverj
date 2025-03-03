@@ -14,12 +14,16 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.adaptflow.af_serverj.common.exception.ErrorCode;
+import com.adaptflow.af_serverj.common.exception.ErrorResponse;
 import com.adaptflow.af_serverj.common.exception.ServiceException;
 import com.adaptflow.af_serverj.configuration.db.adaptflow.service.login.LoginService;
 import com.adaptflow.af_serverj.model.dto.CustomUserDetails;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -41,6 +45,9 @@ public class Filter extends OncePerRequestFilter {
 
     @Autowired
     private LoginService loginService;
+
+    @Autowired
+    private JwtService jwtService;
 
     @Override
     protected void initFilterBean() throws ServletException {
@@ -67,53 +74,37 @@ public class Filter extends OncePerRequestFilter {
             CustomUserDetails userDetails = new CustomUserDetails();
             Cookie[] cookies = request.getCookies();
             String jwtToken = extractValueFromCookies(cookies, JwtService.ACCESS_TOKEN);
-            String refreshToken = extractValueFromCookies(cookies, JwtService.REFRESH_TOKEN);
+            DecodedJWT decodedJWT;
 
             if (jwtToken != null) {
 
                 log.info("[+] JWT Token from cookie: " + jwtToken);
+                decodedJWT = JWT.decode(jwtToken);
                 // validate the token from cookie
                 if (!jwtValidator.validateToken(jwtToken)) {
-                    // token is expired , reset the tokens
+                    // token is expired , refresh the tokens
                     log.info("[-] JWT Token is expired.");
-                    if (refreshToken != null) {
-                        log.info("[+] Refresh token found in cookie : " + refreshToken);
-                        boolean isValid = jwtValidator.validateToken(refreshToken);
-                        if (isValid) {
-                            // refresh the tokens and set the cookies
-                            log.info("[+] Refresh token is valid. Generating new tokens.");
-                            Map<String, String> tokens = loginService.refreshTokens(refreshToken);
-                            response.addCookie(createCookie(JwtService.ACCESS_TOKEN,
-                                    tokens.get(JwtService.ACCESS_TOKEN), loginService.jwtAccessTokenExpireDuration,
-                                    false));
-                            response.addCookie(createCookie(JwtService.REFRESH_TOKEN,
-                                    tokens.get(JwtService.REFRESH_TOKEN), loginService.jwtRefreshTokenExpireDuration,
-                                    true));
-                            jwtToken = tokens.get(JwtService.ACCESS_TOKEN);
-                            refreshToken = tokens.get(JwtService.REFRESH_TOKEN);
+                    String username = decodedJWT.getClaim("username").asString();
 
-                        } else {
-                            // delete the cookies in this case
-                            // forcing the user to login again
-                            response.addCookie(createCookie(JwtService.ACCESS_TOKEN, "", 0, false));
-                            response.addCookie(createCookie(JwtService.REFRESH_TOKEN, "", 0, true));
-                            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Invalid refresh token.");
-                        }
+                    Map<String, String> refreshTokensMap = jwtService.getAllRefreshTokens();
+                    String userRefreshToken = refreshTokensMap.get(username);
+                    if (userRefreshToken != null && !userRefreshToken.isBlank()) {
+                        Map<String, String> tokens = loginService.refreshTokens(userRefreshToken);
+                        response.addCookie(createCookie(JwtService.ACCESS_TOKEN,
+                                tokens.get(JwtService.ACCESS_TOKEN), loginService.jwtAccessTokenExpireDuration));
+                        jwtToken = tokens.get(JwtService.ACCESS_TOKEN);
                     } else {
                         // delete the cookies in this case
                         // forcing the user to login again
-                        response.addCookie(createCookie(JwtService.ACCESS_TOKEN, "", 0, false));
-                        response.addCookie(createCookie(JwtService.REFRESH_TOKEN, "", 0, true));
+                        log.info("[-] Refresh token is missing for user: " + username);
+                        response.addCookie(createCookie(JwtService.ACCESS_TOKEN, "", 0));
                         throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Jwt Expired.");
                     }
                 }
 
-                DecodedJWT decodedJWT = JWT.decode(jwtToken);
                 Map<String, Claim> claims = decodedJWT.getClaims();
-
                 userDetails.setToken(jwtToken);
                 userDetails.setUsername(claims.get("username").asString());
-                userDetails.setRefreshToken(refreshToken);
             } else {
                 throw new ServiceException(ErrorCode.BAD_REQUEST, "Authorization is missing in the request.");
             }
@@ -122,13 +113,18 @@ public class Filter extends OncePerRequestFilter {
         } catch (Exception e) {
             // noinspection CallToPrintStackTrace
             e.printStackTrace();
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule()); // Enable Java 8 date/time support
             if (e.getClass().equals(ServiceException.class)) {
                 ServiceException se = (ServiceException) e;
+                response.setContentType("application/json");
                 response.setStatus(se.getHttpStatusCode());
-                response.getWriter().write(se.getMessage());
+                response.getWriter().write(objectMapper.writeValueAsString(
+                        new ErrorResponse(se.getErrorCode(), e.getMessage())));
             } else {
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                response.getWriter().write(e.getMessage());
+                response.setStatus(ErrorCode.SERVER_ERROR.getHttpStatusCode());
+                response.getWriter().write(objectMapper
+                        .writeValueAsString(new ErrorResponse(ErrorCode.SERVER_ERROR.name(), e.getMessage())));
             }
         } finally {
             UserContextHolder.clear();
@@ -159,12 +155,11 @@ public class Filter extends OncePerRequestFilter {
      * @param maxAge The maximum age of the cookie.
      * @return A cookie object.
      */
-    private Cookie createCookie(String name, String value, int maxAge, boolean isRefresh) {
+    private Cookie createCookie(String name, String value, int maxAge) {
         Cookie cookie = new Cookie(name, value);
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
-        cookie.setMaxAge(
-                isRefresh ? (int) Duration.ofDays(maxAge).getSeconds() : (int) Duration.ofMinutes(maxAge).getSeconds());
+        cookie.setMaxAge((int) Duration.ofMinutes(maxAge).getSeconds());
         cookie.setPath("/");
         return cookie;
     }

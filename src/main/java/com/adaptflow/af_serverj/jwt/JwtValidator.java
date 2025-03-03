@@ -10,6 +10,8 @@ import java.util.Map;
 
 import org.bouncycastle.asn1.pkcs.RSAPrivateKey;
 import org.redisson.api.RBucket;
+import org.redisson.api.RMap;
+import org.redisson.api.RMapCache;
 import org.redisson.api.RedissonClient;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.springframework.beans.factory.annotation.Value;
@@ -103,8 +105,8 @@ public class JwtValidator {
         }
 
         // checking if the token is blacklisted
-        RBucket<List<String>> blacklistedTokensList = redissonClient.getBucket(BLACKLISTED_TOKENS_KEY);
-        if (blacklistedTokensList.get() != null && blacklistedTokensList.get().contains(token)) {
+        RMapCache<String, String> blacklistedTokensList = redissonClient.getMapCache(BLACKLISTED_TOKENS_KEY);
+        if (blacklistedTokensList.containsKey(token)) {
             throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Token is blacklisted.");
         }
 

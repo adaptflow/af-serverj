@@ -2,9 +2,12 @@ package com.adaptflow.af_serverj.common.exception;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 public class ErrorResponse {
     private String errorCode;
     private String errorMessage;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     private LocalDateTime timestamp;
 
     // Constructor

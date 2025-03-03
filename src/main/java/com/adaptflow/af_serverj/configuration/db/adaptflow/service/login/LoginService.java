@@ -66,14 +66,11 @@ public class LoginService extends JwtService {
         addRefreshTokenInRedis(user.getUsername(), tokens.get(JwtService.REFRESH_TOKEN));
 
         // Create cookies for Access Token and Refresh Token
-        ResponseCookie accessTokenCookie = getCookieValue(tokens, false, false);
-
-        ResponseCookie refreshTokenCookie = getCookieValue(tokens, true, false);
+        ResponseCookie accessTokenCookie = getCookieValue(tokens, false);
 
         // Return response with cookies
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
-                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
                 .body(Map.of());
 
     }
@@ -83,7 +80,9 @@ public class LoginService extends JwtService {
         if (refreshToken == null) {
             throw new ServiceException(ErrorCode.INVALID_INPUT, "Refresh token is required.");
         }
-
+        if (!validateToken(refreshToken)) {
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Refresh token expired.");
+        }
         // Decode JWT only after successful validation
         DecodedJWT decodedJWT = JWT.decode(refreshToken);
         String username = decodedJWT.getClaim("username").asString();
@@ -97,8 +96,8 @@ public class LoginService extends JwtService {
         // update the new refresh token in redis for the user and blacklist older one
         String newRefreshToken = tokens.get(JwtService.REFRESH_TOKEN);
         addRefreshTokenInRedis(user.getUsername(), newRefreshToken);
-        // blacklist old refresh token
-        blacklistToken(refreshToken);
+        // blacklist older refresh token
+        blacklistToken(username, refreshToken, true);
 
         return tokens;
     }
@@ -139,20 +138,18 @@ public class LoginService extends JwtService {
         log.info("Logging out user: {}", username);
         // blacklist the access token & refresh token
         if (accessToken != null)
-            blacklistToken(accessToken);
+            blacklistToken(username, accessToken, false);
 
         // gets all the refresh tokens of users stored in redis
         Map<String, String> refreshTokensMap = getAllRefreshTokens();
         if (refreshTokensMap.containsKey(username))
-            blacklistToken(refreshTokensMap.get(username));
+            blacklistToken(username, refreshTokensMap.get(username), true);
 
-        ResponseCookie accessTokenCookie = getCookieValue(Map.of(), false, true);
+        ResponseCookie accessTokenCookie = getCookieValue(Map.of(), true);
 
-        ResponseCookie refreshTokenCookie = getCookieValue(Map.of(), true, true);
         // Return response with cookies
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
-                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
                 .body(Map.of("msg", "User logged out successfully."));
 
     }
@@ -165,20 +162,10 @@ public class LoginService extends JwtService {
      * @param isLogout  A boolean flag indicating cookie to be set for logout case
      * @return ResponseCookie A cookie object.
      */
-    private ResponseCookie getCookieValue(Map<String, String> tokens, boolean isRefresh, boolean isLogout) {
-        if (isRefresh && !isLogout) {
-            return ResponseCookie
-                    .from(REFRESH_TOKEN, tokens.get(REFRESH_TOKEN))
-                    .httpOnly(true)
-                    .secure(true)
-                    .path("/")
-                    .maxAge(Duration.ofDays(jwtRefreshTokenExpireDuration))
-                    .sameSite("Lax")
-                    .build();
-        }
+    private ResponseCookie getCookieValue(Map<String, String> tokens, boolean isLogout) {
         if (isLogout) {
             return ResponseCookie
-                    .from(isRefresh ? REFRESH_TOKEN : ACCESS_TOKEN, "")
+                    .from(ACCESS_TOKEN, "")
                     .httpOnly(true)
                     .secure(true)
                     .path("/")
