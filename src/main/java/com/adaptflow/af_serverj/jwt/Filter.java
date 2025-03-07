@@ -98,7 +98,7 @@ public class Filter extends OncePerRequestFilter {
                         // forcing the user to login again
                         log.info("[-] Refresh token is missing for user: " + username);
                         response.addCookie(createCookie(JwtService.ACCESS_TOKEN, "", 0));
-                        throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Jwt Expired.");
+                        throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Token is Expired.");
                     }
                 }
 
@@ -106,7 +106,8 @@ public class Filter extends OncePerRequestFilter {
                 userDetails.setToken(jwtToken);
                 userDetails.setUsername(claims.get("username").asString());
             } else {
-                throw new ServiceException(ErrorCode.BAD_REQUEST, "Authorization is missing in the request.");
+            	log.error("Invalid token.");
+                throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
             }
             UserContextHolder.set(userDetails);
             filterChain.doFilter(request, response);

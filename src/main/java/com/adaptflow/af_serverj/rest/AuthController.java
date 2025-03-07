@@ -38,8 +38,8 @@ public class AuthController {
      * @return A response containing user details and authentication tokens.
      * @throws ServiceException If authentication fails.
      */
-    @PostMapping(path = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<?, ?>> login(@RequestBody Map<String, String> request) throws ServiceException {
+    @PostMapping(path = "/login")
+    public ResponseEntity<String> login(@RequestBody Map<String, String> request) throws ServiceException {
         try {
             return loginService.handleUserLogin(request);
         } catch (ServiceException e) {
@@ -47,7 +47,7 @@ public class AuthController {
         } catch (Exception e) {
             // Handle unexpected errors (log and return a generic error response)
             log.error("Unexpected error during login", e);
-            throw new ServiceException(ErrorCode.SERVER_ERROR);
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
     }
 
@@ -68,7 +68,7 @@ public class AuthController {
             throw e; // Let the global exception handler take care of this
         } catch (Exception e) {
             // Handle unexpected errors (log and return a generic error response)
-            log.error("Unexpected error during login", e);
+            log.error("Unexpected error during new user registration", e);
             throw new ServiceException(ErrorCode.SERVER_ERROR);
         }
     }
