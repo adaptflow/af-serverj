@@ -12,11 +12,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com.adaptflow.af_serverj.common.exception.ErrorCode;
 import com.adaptflow.af_serverj.common.exception.ServiceException;
 import com.adaptflow.af_serverj.configuration.db.adaptflow.service.login.LoginService;
+import com.adaptflow.af_serverj.model.dto.UserDetailsDTO;
 import com.adaptflow.af_serverj.model.dto.UserRegistrationDTO;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -82,6 +84,24 @@ public class AuthController {
     @PostMapping(path = "/logout", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<?, ?>> logoutUser() {
         return loginService.processLogout();
+    }
+    
+    /**
+     * Retrieves current user details.
+     *
+     * @return A response containing user details (username, firstname, lastname).
+     * @throws ServiceException If user details retrieval fails.
+     */
+    @GetMapping(path = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserDetailsDTO> getCurrentUserDetails() throws ServiceException {
+        try {
+            return ResponseEntity.ok(loginService.getCurrentUserDetails());
+        } catch (ServiceException e) {
+            throw e; 
+        } catch (Exception e) {
+            log.error("Unexpected error during user details retrieval", e);
+            throw new ServiceException(ErrorCode.SERVER_ERROR);
+        }
     }
 
 }

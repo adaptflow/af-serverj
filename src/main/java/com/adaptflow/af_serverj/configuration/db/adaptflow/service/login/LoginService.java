@@ -18,6 +18,7 @@ import com.adaptflow.af_serverj.configuration.db.adaptflow.entity.User;
 import com.adaptflow.af_serverj.configuration.db.adaptflow.repository.login.UserRepository;
 import com.adaptflow.af_serverj.jwt.JwtService;
 import com.adaptflow.af_serverj.jwt.UserContextHolder;
+import com.adaptflow.af_serverj.model.dto.UserDetailsDTO;
 import com.adaptflow.af_serverj.model.dto.UserRegistrationDTO;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -164,6 +165,21 @@ public class LoginService extends JwtService {
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
                 .body(Map.of("msg", "User logged out successfully."));
 
+    }
+    
+    public UserDetailsDTO getCurrentUserDetails() throws ServiceException {
+        String username = UserContextHolder.get().getUsername();
+        if (username == null) {
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS));
+
+        UserDetailsDTO userDetailsDTO = new UserDetailsDTO();
+        userDetailsDTO.setUsername(user.getUsername());
+        userDetailsDTO.setFirstname(user.getFirstname());
+        userDetailsDTO.setLastname(user.getLastname());
+        return userDetailsDTO;
     }
 
     /**
