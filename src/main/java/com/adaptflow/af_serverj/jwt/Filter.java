@@ -140,11 +140,13 @@ public class Filter extends OncePerRequestFilter {
      * @return The value of the cookie with the given name.
      */
     private String extractValueFromCookies(Cookie[] cookies, String cookieName) {
-        for (Cookie cookie : cookies) {
-            if (cookieName.equals(cookie.getName())) {
-                return cookie.getValue();
-            }
-        }
+    	if(cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookieName.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }	
+    	}
         return null;
     }
 
