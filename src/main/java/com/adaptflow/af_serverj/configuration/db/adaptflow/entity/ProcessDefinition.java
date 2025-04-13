@@ -24,10 +24,10 @@ public class ProcessDefinition {
     @Column(nullable = false)
     private String fields;
 
-    @Column(nullable = false)
+    @Column(name="created_at", nullable = false)
     private long createdAt;
 
-    @Column(nullable = false)
+    @Column(name="modified_at", nullable = false)
     private long modifiedAt;
 
     @Column(nullable = false)
