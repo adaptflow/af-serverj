@@ -41,6 +41,17 @@ CREATE TABLE IF NOT EXISTS af_global.user (
     password character varying(255) NOT NULL,
     username character varying(255) NOT NULL UNIQUE
 );
+
+CREATE TABLE IF NOT EXISTS af_global.processDefinition (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    createdBy VARCHAR(255) NOT NULL,
+    generalProperties TEXT,
+    fields TEXT,
+    created_at BIGINT NOT NULL,
+    modified_at BIGINT
+);
+
 ------------------------------------------------------------------------------------------------
 -- Add Sample Data------------------------------------------------------------------------------
 -- Clear existing data

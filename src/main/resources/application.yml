@@ -1,3 +1,5 @@
+server:
+  is-secure: false
 spring:
   application:
     name: "activiti"
@@ -12,7 +14,8 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       # can connect to a password protected redis, just need to uncomment the below line.
-      # password: ${REDIS_PASSWORD:superadmin}
+      password: ${REDIS_PASSWORD:superadmin}
+      username: ${REDIS_USERNAME:default}
   datasource:
     activiti:
       url: ${ACTIVITI_DB_URL}

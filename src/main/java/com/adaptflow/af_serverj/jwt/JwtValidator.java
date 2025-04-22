@@ -21,6 +21,8 @@ import com.adaptflow.af_serverj.common.exception.ErrorCode;
 import com.adaptflow.af_serverj.common.exception.ServiceException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
@@ -28,6 +30,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
 
 @Component
+@Slf4j
 public class JwtValidator {
     public static final String SHA_512_WITH_RSA_ALGORITHM = "SHA512withRSA";
     public static final String BLACKLISTED_TOKENS_KEY = "blacklisted.jwts";
@@ -101,13 +104,15 @@ public class JwtValidator {
     public boolean validateToken(String token) throws Exception {
         String[] parts = token.split("\\.");
         if (parts.length != 3) {
-            throw new ServiceException(ErrorCode.BAD_REQUEST, "Invalid token structure.");
+        	log.error("Invalid token structure.");
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
 
         // checking if the token is blacklisted
         RMapCache<String, String> blacklistedTokensList = redissonClient.getMapCache(BLACKLISTED_TOKENS_KEY);
         if (blacklistedTokensList.containsKey(token)) {
-            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Token is blacklisted.");
+        	log.error("Token is blacklisted.");
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
 
         // Decode header & payload
@@ -126,7 +131,8 @@ public class JwtValidator {
         sig.update(signedContent.getBytes(StandardCharsets.UTF_8));
 
         if (!sig.verify(signature)) {
-            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Invalid token signature.");
+        	log.error(signedContent, "Invalid token signature.");
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
 
         // Check token expiration
@@ -137,7 +143,8 @@ public class JwtValidator {
                 return false;
             }
         } else {
-            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Token does not contain expiration.");
+        	log.error("Token does not contain expiration.");
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
 
         return true;

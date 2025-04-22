@@ -18,6 +18,7 @@ import com.adaptflow.af_serverj.configuration.db.adaptflow.entity.User;
 import com.adaptflow.af_serverj.configuration.db.adaptflow.repository.login.UserRepository;
 import com.adaptflow.af_serverj.jwt.JwtService;
 import com.adaptflow.af_serverj.jwt.UserContextHolder;
+import com.adaptflow.af_serverj.model.dto.UserDetailsDTO;
 import com.adaptflow.af_serverj.model.dto.UserRegistrationDTO;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -30,6 +31,9 @@ import lombok.extern.slf4j.Slf4j;
 public class LoginService extends JwtService {
 
     private final UserRepository userRepository;
+    
+    @Value("${server.is-secure}")
+    private Boolean isSecure;
 
     public LoginService(
             @Value("${jwt.access_token.expire}") int jwtAccessTokenExpireDuration,
@@ -44,17 +48,21 @@ public class LoginService extends JwtService {
     }
 
     @Transactional
-    public ResponseEntity<Map<?, ?>> handleUserLogin(Map<String, String> request) throws ServiceException {
+    public ResponseEntity<String> handleUserLogin(Map<String, String> request) throws ServiceException {
         String username = request.get("username");
         String password = request.get("password");
         if (username == null || password == null) {
-            throw new ServiceException(ErrorCode.INVALID_INPUT, "Username and password are required fields.");
+        	log.error("Username and password are required fields.");
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ServiceException(ErrorCode.INVALID_INPUT, "User could not be found."));
+                .orElseThrow(() -> {
+                	log.error("User could not be found.");
+                	return new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
+                });
 
         if (!BCrypt.checkpw(password, user.getPassword())) {
-            throw new ServiceException(ErrorCode.INVALID_INPUT);
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
 
         // update last-login everytime
@@ -71,17 +79,19 @@ public class LoginService extends JwtService {
         // Return response with cookies
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
-                .body(Map.of());
+                .body("");
 
     }
 
     @Transactional
     public Map<String, String> refreshTokens(String refreshToken) throws Exception {
         if (refreshToken == null) {
-            throw new ServiceException(ErrorCode.INVALID_INPUT, "Refresh token is required.");
+        	log.error("Refresh token is required.");
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
         if (!validateToken(refreshToken)) {
-            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS, "Refresh token expired.");
+        	log.error("Refresh token expired.");
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
         // Decode JWT only after successful validation
         DecodedJWT decodedJWT = JWT.decode(refreshToken);
@@ -89,7 +99,10 @@ public class LoginService extends JwtService {
 
         // Convert userId to UUID and fetch user
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ServiceException(ErrorCode.INVALID_INPUT, "User could not be found."));
+                .orElseThrow(() -> {
+                	log.error("User could not be found.");
+                	return new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
+                });
 
         // Generate and return new tokens
         Map<String, String> tokens = createTokens(user);
@@ -142,7 +155,7 @@ public class LoginService extends JwtService {
 
         // gets all the refresh tokens of users stored in redis
         Map<String, String> refreshTokensMap = getAllRefreshTokens();
-        if (refreshTokensMap.containsKey(username))
+        if (refreshTokensMap.containsKey(username) && refreshTokensMap.get(username) != null)
             blacklistToken(username, refreshTokensMap.get(username), true);
 
         ResponseCookie accessTokenCookie = getCookieValue(Map.of(), true);
@@ -152,6 +165,21 @@ public class LoginService extends JwtService {
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
                 .body(Map.of("msg", "User logged out successfully."));
 
+    }
+    
+    public UserDetailsDTO getCurrentUserDetails() throws ServiceException {
+        String username = UserContextHolder.get().getUsername();
+        if (username == null) {
+            throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS));
+
+        UserDetailsDTO userDetailsDTO = new UserDetailsDTO();
+        userDetailsDTO.setUsername(user.getUsername());
+        userDetailsDTO.setFirstname(user.getFirstname());
+        userDetailsDTO.setLastname(user.getLastname());
+        return userDetailsDTO;
     }
 
     /**
@@ -167,7 +195,7 @@ public class LoginService extends JwtService {
             return ResponseCookie
                     .from(ACCESS_TOKEN, "")
                     .httpOnly(true)
-                    .secure(true)
+                    .secure(this.isSecure)
                     .path("/")
                     .maxAge(Duration.ofMinutes(0))
                     .sameSite("Lax")
@@ -176,7 +204,7 @@ public class LoginService extends JwtService {
         return ResponseCookie
                 .from(ACCESS_TOKEN, tokens.get(ACCESS_TOKEN))
                 .httpOnly(true)
-                .secure(true)
+                .secure(this.isSecure)
                 .path("/")
                 .maxAge(Duration.ofMinutes(jwtAccessTokenExpireDuration))
                 .sameSite("Lax")
