@@ -12,9 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.adaptflow.af_serverj.common.exception.ErrorCode;
 import com.adaptflow.af_serverj.common.exception.ServiceException;
 import com.adaptflow.af_serverj.configuration.db.adaptflow.service.login.LoginService;
-import com.adaptflow.af_serverj.model.dto.UserDetailsDTO;
-import com.adaptflow.af_serverj.model.dto.UserRegistrationDTO;
+import com.adaptflow.af_serverj.model.dto.user.LoginRequestDTO;
+import com.adaptflow.af_serverj.model.dto.user.UserDetailsDTO;
+import com.adaptflow.af_serverj.model.dto.user.UserRegistrationDTO;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RequestMapping("/api/auth")
 @Slf4j
 @Validated
+@Tag(name = "Auth Controller", description = "APIs for managing authentication")
 public class AuthController {
 
     @Autowired
@@ -36,12 +40,13 @@ public class AuthController {
      * Validates the credentials and returns access & refresh tokens if
      * authentication is successful.
      *
-     * @param request A map containing "username" and "password" fields.
+     * @param A request object containing "username" and "password" fields.
      * @return A response containing user details and authentication tokens.
      * @throws ServiceException If authentication fails.
      */
     @PostMapping(path = "/login")
-    public ResponseEntity<String> login(@RequestBody Map<String, String> request) throws ServiceException {
+    @Operation(summary = "Login", description = "Adds a JWT token in cookies")
+    public ResponseEntity<String> login(@RequestBody LoginRequestDTO request) throws ServiceException {
         try {
             return loginService.handleUserLogin(request);
         } catch (ServiceException e) {
@@ -92,6 +97,7 @@ public class AuthController {
      * @return A response containing user details (username, firstname, lastname).
      * @throws ServiceException If user details retrieval fails.
      */
+    @Operation(summary = "Logged in user details")
     @GetMapping(path = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserDetailsDTO> getCurrentUserDetails() throws ServiceException {
         try {

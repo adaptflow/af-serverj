@@ -17,7 +17,7 @@ import com.adaptflow.af_serverj.common.exception.ErrorCode;
 import com.adaptflow.af_serverj.common.exception.ErrorResponse;
 import com.adaptflow.af_serverj.common.exception.ServiceException;
 import com.adaptflow.af_serverj.configuration.db.adaptflow.service.login.LoginService;
-import com.adaptflow.af_serverj.model.dto.CustomUserDetails;
+import com.adaptflow.af_serverj.model.dto.user.CustomUserDetails;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;

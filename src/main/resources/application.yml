@@ -45,7 +45,7 @@ spring:
     ignore-missing-migrations: true
     outOfOrder: true
 jwt:
-  excluded-paths: /api/auth/login,/h2-console/**,/actuator/**
+  excluded-paths: /api/auth/login,/h2-console/**,/actuator/**,/swagger-ui.html,/swagger-ui/**,/v3/api-docs/**
   access_token:
     expire: ${JWT_ACCESS_EXPIRE_TIME:15} # in minutes
   refresh_token:

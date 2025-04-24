@@ -1,6 +1,6 @@
 package com.adaptflow.af_serverj.jwt;
 
-import com.adaptflow.af_serverj.model.dto.CustomUserDetails;
+import com.adaptflow.af_serverj.model.dto.user.CustomUserDetails;
 
 public class UserContextHolder {
 
