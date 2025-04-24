@@ -1,4 +1,4 @@
-package com.adaptflow.af_serverj.model.dto;
+package com.adaptflow.af_serverj.model.dto.user;
 
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;

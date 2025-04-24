@@ -18,8 +18,9 @@ import com.adaptflow.af_serverj.configuration.db.adaptflow.entity.User;
 import com.adaptflow.af_serverj.configuration.db.adaptflow.repository.login.UserRepository;
 import com.adaptflow.af_serverj.jwt.JwtService;
 import com.adaptflow.af_serverj.jwt.UserContextHolder;
-import com.adaptflow.af_serverj.model.dto.UserDetailsDTO;
-import com.adaptflow.af_serverj.model.dto.UserRegistrationDTO;
+import com.adaptflow.af_serverj.model.dto.user.LoginRequestDTO;
+import com.adaptflow.af_serverj.model.dto.user.UserDetailsDTO;
+import com.adaptflow.af_serverj.model.dto.user.UserRegistrationDTO;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
@@ -48,9 +49,9 @@ public class LoginService extends JwtService {
     }
 
     @Transactional
-    public ResponseEntity<String> handleUserLogin(Map<String, String> request) throws ServiceException {
-        String username = request.get("username");
-        String password = request.get("password");
+    public ResponseEntity<String> handleUserLogin(LoginRequestDTO request) throws ServiceException {
+        String username = request.getUsername();
+        String password = request.getPassword();
         if (username == null || password == null) {
         	log.error("Username and password are required fields.");
             throw new ServiceException(ErrorCode.UNAUTHORIZED_ACCESS);
