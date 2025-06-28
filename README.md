@@ -1,3 +1,5 @@
+Disclaimer: As the agentic field is evolving, the current design is in the re-evaluation phase. For the time being, no more changes will be done.
+
 # Adaptflow Java Server
 This project simplifies RAG/Agent creation and testing even for non-technical users through a visual BPMN 2.0 modeler and execution engine. It bridges the gap between codeless prototyping and production by enabling the export of designed models as standalone applications, initially supporting Java and planned expansion to other languages like Python.
 ## Table of Contents
